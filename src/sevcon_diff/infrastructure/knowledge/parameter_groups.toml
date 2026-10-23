@@ -1,0 +1,230 @@
+# Clasificación funcional de objetos del diccionario Sevcon Gen4.
+#
+# Sintaxis de reglas (todos los índices y subíndices en HEX, como en el DCF):
+#   { index = "4641", subs = ["2", "3", "1D"] }   -> subíndices concretos del objeto
+#   { index = "4641", subs = ["1-4"] }            -> rango de subíndices (inclusivo)
+#   { index = "6076" }                            -> objeto completo (todas sus subs)
+#   { range = ["2906", "2908"] }                  -> rango de objetos (inclusivo)
+#
+# Resolución (independiente del orden de los grupos):
+#   1. Gana la regla más específica: index+subs > index > range.
+#   2. A igual especificidad, gana la primera que aparece en este fichero.
+#   3. Sin coincidencia -> grupo `fallback`.
+#
+# motor_control = true marca los grupos que la UI destaca con ★ y filtra con
+# "Solo control de motor". Ver docs/sevcon_parameters.md para el porqué de cada objeto.
+
+fallback = "other"
+
+[[group]]
+id = "motor_base"
+label = "Datos base del motor"
+motor_control = true
+order = 10
+rules = [
+    { index = "4641", subs = ["2", "3", "5", "7", "C", "12"] },
+    { index = "6075" },
+    { index = "6076" },
+    { index = "6080" },
+    { index = "2916", subs = ["1"] },
+    { index = "4617", subs = ["2"] },
+    { index = "4641" },  # resto de 4641 (cabecera, commit) cae aquí
+]
+
+[[group]]
+id = "electrical_model"
+label = "Modelo eléctrico / inductancias"
+motor_control = true
+order = 20
+rules = [
+    { index = "4641", subs = ["A", "2B", "E"] },
+    { index = "4617", subs = ["1", "3", "4"] },
+    { index = "4621", subs = ["4-7"] },
+]
+
+[[group]]
+id = "current_loop"
+label = "Lazo de corriente (Kp/Ki)"
+motor_control = true
+order = 30
+rules = [
+    { index = "4641", subs = ["D", "F", "21", "22"] },
+]
+
+[[group]]
+id = "speed_loop"
+label = "Lazo de velocidad (Kp/Ki)"
+motor_control = true
+order = 40
+rules = [
+    { index = "4651" },
+    { index = "2900" },
+    { index = "290A" },
+    { index = "2933" },
+]
+
+[[group]]
+id = "torque_limits"
+label = "Límites de par / corriente"
+motor_control = true
+order = 50
+rules = [
+    { index = "6072" },
+    { index = "4611" },
+    { index = "4615" },
+    { index = "4652" },
+    { index = "2920", subs = ["1-4"] },
+    { index = "2921", subs = ["1-4"] },
+    { index = "2922", subs = ["1-4"] },
+    { index = "2936", subs = ["1-4"] },
+    { index = "2930", subs = ["2"] },
+    { index = "5840" },
+]
+
+[[group]]
+id = "speed_limits"
+label = "Límites de velocidad"
+motor_control = true
+order = 60
+rules = [
+    { index = "4624" },
+    { index = "2920", subs = ["5", "6", "F", "10"] },
+    { index = "2921", subs = ["5", "6", "F", "10"] },
+    { index = "2922", subs = ["5", "6", "F", "10"] },
+    { index = "2936", subs = ["5", "6", "F", "10"] },
+    { index = "291E" },
+    { range = ["2906", "2908"] },
+    { index = "2929", subs = ["2"] },
+    { index = "290C", subs = ["2"] },
+    { index = "2930", subs = ["3"] },
+    { index = "2919", subs = ["1"] },
+    { index = "2915" },
+]
+
+[[group]]
+id = "field_weakening"
+label = "Debilitamiento de campo"
+motor_control = true
+order = 70
+rules = [
+    { index = "4641", subs = ["16", "19", "1A", "1E", "1F"] },
+]
+
+[[group]]
+id = "voltage_limits"
+label = "Límites de tensión / cutback"
+motor_control = true
+order = 80
+rules = [
+    { index = "4612" },
+    { range = ["2C00", "2C03"] },
+    { index = "462B" },
+    { index = "5820" },
+    { index = "5821" },
+    { index = "5824" },
+]
+
+[[group]]
+id = "encoder"
+label = "Encoder / posición"
+motor_control = true
+order = 90
+rules = [
+    { index = "4630" },
+    { index = "4631" },
+    { index = "6090" },
+    { index = "60F8" },
+]
+
+[[group]]
+id = "thermal"
+label = "Protección térmica"
+motor_control = true
+order = 100
+rules = [
+    { index = "4620" },
+    { index = "4621" },
+    { index = "461E" },
+    { index = "461F" },
+    { index = "5A01" },
+]
+
+[[group]]
+id = "traction_profiles"
+label = "Perfiles de tracción / acelerador"
+motor_control = false
+order = 110
+rules = [
+    { range = ["2910", "2914"] },
+    { range = ["2920", "2922"] },
+    { index = "2936" },
+    { index = "2931" },
+    { index = "6083" },
+    { index = "6087" },
+    { range = ["2901", "2904"] },
+    { index = "2909" },
+    { range = ["290B", "290E"] },
+    { index = "2918" },
+    { index = "2919" },
+    { index = "291A" },
+    { index = "291C" },
+    { index = "2929" },
+    { index = "2930" },
+]
+
+[[group]]
+id = "battery"
+label = "Batería / potencia"
+motor_control = false
+order = 120
+rules = [
+    { index = "4623" },
+    { index = "2870" },
+    { index = "2872" },
+    { index = "2C30" },
+    { index = "2C31" },
+]
+
+[[group]]
+id = "io"
+label = "E/S y contactores"
+motor_control = false
+order = 130
+rules = [
+    { index = "4680" },
+    { index = "4681" },
+    { index = "4690" },
+    { range = ["46A1", "46A4"] },
+    { range = ["46C0", "46C4"] },
+    { index = "6802" },
+    { index = "6C43" },
+    { index = "6C44" },
+    { range = ["2D00", "2D02"] },
+    { index = "2820" },
+    { index = "2840" },
+    { index = "2850" },
+    { range = ["3000", "34FF"] },
+    { index = "5800" },
+    { index = "4658" },
+    { index = "5830" },
+    { index = "5831" },
+]
+
+[[group]]
+id = "can_pdo"
+label = "CAN / PDO"
+motor_control = false
+order = 140
+rules = [
+    { range = ["1005", "1017"] },
+    { range = ["1200", "1287"] },
+    { range = ["1400", "1AFF"] },
+    { range = ["5900", "5906"] },
+]
+
+[[group]]
+id = "other"
+label = "Otros"
+motor_control = false
+order = 999
+rules = []

@@ -1,0 +1,101 @@
+# Reglas de "ruido": valores de monitorización / registro que cambian en cada
+# guardado del DCF y NO son cambios de configuración. La UI los oculta por defecto
+# ("Mostrar monitorización" los vuelve a enseñar).
+#
+# Un parámetro es ruido si se cumple CUALQUIERA de:
+#   - su CATEGORY (heredada del objeto padre) está en `categories`
+#   - su AccessType está en `access_types`
+#   - coincide con alguna regla de [[noise]]
+# ...salvo que coincida con alguna regla de [[keep]] (excepciones, ganan siempre).
+#
+# Misma sintaxis de reglas que parameter_groups.toml (index / subs / range, en HEX).
+
+categories = ["MONITORING", "LOGGING"]
+access_types = ["ro", "const"]
+
+# Objetos que se muestran en el resumen como indicador, nunca como cambio.
+[indicators]
+checksum = "5620"
+
+[[noise]]
+reason = "Contadores de horas"
+rules = [
+    { range = ["2781", "2786"] },
+    { index = "4601" },
+    { index = "5200" },
+]
+
+[[noise]]
+reason = "Odómetro / trip"
+rules = [{ index = "29A0" }, { index = "29A1" }]
+
+[[noise]]
+reason = "Registros de eventos y fallos"
+rules = [
+    { index = "4000" },
+    { range = ["4100", "4112"] },
+    { range = ["4200", "420A"] },
+    { index = "4300" },
+    { index = "4301" },
+    { index = "5300" },
+    { index = "5310" },
+    { index = "5320" },
+    { index = "5600" },
+    { index = "5620" },
+    { index = "1001" },
+]
+
+[[noise]]
+reason = "Medidas en tiempo real"
+rules = [
+    { index = "4600" },
+    { index = "4602" },
+    { index = "4603" },
+    { index = "4605" },
+    { index = "5100" },
+    { index = "46D0" },
+    { index = "6C01" },
+    { index = "6800" },
+    { index = "6C11" },
+    { index = "6079" },
+    { index = "4630", subs = ["9-C"] },
+    { index = "2871" },
+    { index = "4617", subs = ["A-C"] },
+]
+
+[[noise]]
+reason = "Estado del accionamiento / NMT"
+rules = [
+    { index = "6040" },
+    { index = "6041" },
+    { index = "6061" },
+    { index = "6069" },
+    { index = "606B" },
+    { index = "606C" },
+    { index = "6071" },
+    { index = "6074" },
+    { index = "6077" },
+    { index = "6078" },
+    { index = "60FF" },
+    { index = "5110" },
+    { index = "2800" },
+]
+
+[[noise]]
+reason = "Estado de aplicación (VPDO)"
+rules = [
+    { range = ["2020", "2060"] },
+    { range = ["2101", "2184"] },
+    { range = ["2220", "2241"] },
+    { range = ["2400", "2460"] },
+    { range = ["2620", "2641"] },
+    { range = ["2720", "2760"] },
+    { index = "278F" },
+    { index = "2790" },
+]
+
+# Excepciones: configuración real aunque el DCF la marque como MONITORING o ro.
+# (Vacío de inicio; añadir aquí si se detecta un falso positivo.)
+[[keep]]
+reason = "Excepciones"
+rules = []

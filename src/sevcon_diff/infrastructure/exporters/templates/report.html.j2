@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparación DCF · {{ a.display_name }} → {{ b.display_name }}</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #1d2330; --muted: #6b7280; --border: #e3e6eb;
+    --accent: #1f6feb; --motor: #b45309; --motor-bg: #fff7ed; --warn: #b91c1c; --warn-bg: #fef2f2;
+    --added: #15803d; --removed: #b91c1c; --modified: #1f6feb; --zebra: #fafbfc;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 28px 24px 48px; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .files { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .file h2 { margin: 0 0 8px; font-size: 15px; }
+  .file h2 .tag { display: inline-block; min-width: 22px; text-align: center; border-radius: 6px;
+                  background: var(--accent); color: #fff; font-size: 12px; padding: 1px 6px; margin-right: 6px; }
+  .file dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; font-size: 13px; }
+  .file dt { color: var(--muted); }
+  .file dd { margin: 0; word-break: break-all; }
+  .alert { border-radius: 10px; padding: 10px 14px; margin: 0 0 16px; background: var(--warn-bg);
+           color: var(--warn); border: 1px solid #fecaca; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat .n { font-size: 24px; font-weight: 700; }
+  .stat .l { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat.motor .n { color: var(--motor); }
+  section.group { margin-bottom: 22px; }
+  section.group h3 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  section.group.motor h3 { color: var(--motor); }
+  .count { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--card);
+           border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border);
+          border-radius: 10px; overflow: hidden; }
+  section.group.motor table { border-left: 4px solid var(--motor); }
+  th, td { text-align: left; padding: 7px 10px; vertical-align: top; border-bottom: 1px solid var(--border); }
+  th { background: #eef1f5; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #4b5563; }
+  tr:nth-child(even) td { background: var(--zebra); }
+  td.key { font-family: Consolas, "SFMono-Regular", Menlo, monospace; white-space: nowrap; }
+  td.val { font-family: Consolas, "SFMono-Regular", Menlo, monospace; white-space: nowrap; }
+  td.delta { white-space: nowrap; color: var(--muted); }
+  .parent { color: var(--muted); font-size: 12px; }
+  .bits { margin: 4px 0 0; padding-left: 16px; font-size: 12px; color: #374151; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 0 6px; margin-left: 6px; }
+  .badge.added { background: #dcfce7; color: var(--added); }
+  .badge.removed { background: #fee2e2; color: var(--removed); }
+  .badge.limit { background: var(--warn-bg); color: var(--warn); }
+  .badge.noise { background: #f3f4f6; color: var(--muted); }
+  footer { margin-top: 32px; color: var(--muted); font-size: 12px; text-align: center; }
+  .empty { color: var(--muted); font-style: italic; }
+  @media print { body { background: #fff; } .page { padding: 0; } .card, table { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Comparación de configuración Sevcon Gen4</h1>
+    <div class="sub">Generado el {{ generated }} · Sevcon DCF Diff v{{ version }}</div>
+  </header>
+
+  <div class="files">
+    {% for tag, f in [("A", a), ("B", b)] %}
+    <div class="card file">
+      <h2><span class="tag">{{ tag }}</span>{{ "Archivo base" if tag == "A" else "Archivo nuevo" }}: {{ f.display_name }}</h2>
+      <dl>
+        <dt>Ruta</dt><dd>{{ f.path }}</dd>
+        <dt>Nombre original</dt><dd>{{ f.original_file_name or "—" }}</dd>
+        <dt>Modificado</dt><dd>{{ f.modification_date }} {{ f.modification_time }}</dd>
+        <dt>Producto</dt><dd>{{ f.product_number or "—" }}</dd>
+        <dt>Firmware</dt><dd>{{ f.revision_number or "—" }}</dd>
+        <dt>Checksum config.</dt><dd>{{ f.checksum or "—" }}</dd>
+      </dl>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if result.firmware_mismatch %}
+  <div class="alert">⚠ La revisión de firmware difiere ({{ a.revision_number }} → {{ b.revision_number }}). DVT no permitirá enviar un DCF a una unidad con otra plataforma.</div>
+  {% endif %}
+
+  <div class="stats">
+    <div class="card stat"><div class="n">{{ summary.relevant }}</div><div class="l">Cambios relevantes</div></div>
+    <div class="card stat motor"><div class="n">★ {{ summary.motor_control }}</div><div class="l">Control de motor</div></div>
+    <div class="card stat"><div class="n">{{ summary.noise }}</div><div class="l">Monitorización (ruido)</div></div>
+    <div class="card stat"><div class="n">{{ shown }}</div><div class="l">Mostrados en el informe</div></div>
+    <div class="card stat"><div class="n">{{ "Difiere" if result.checksum_differs else "Igual" }}</div><div class="l">Checksum A / B</div></div>
+  </div>
+
+  {% for group in groups %}
+  <section class="group{% if group.motor_control %} motor{% endif %}">
+    <h3>{% if group.motor_control %}★ {% endif %}{{ group.label }} <span class="count">{{ group.rows|length }}</span></h3>
+    <table>
+      <thead><tr><th style="width:110px">Objeto</th><th>Parámetro</th><th>Valor A</th><th>Valor B</th><th>Δ</th><th>Unidad</th></tr></thead>
+      <tbody>
+      {% for row in group.rows %}
+        <tr>
+          <td class="key">{{ row.key }}</td>
+          <td title="{{ row.description }}">
+            {% if row.parent %}<div class="parent">{{ row.parent }}</div>{% endif %}
+            {{ row.name }}
+            {% if row.kind != "modified" %}<span class="badge {{ row.kind }}">{{ row.kind_label }}</span>{% endif %}
+            {% if row.out_of_limits %}<span class="badge limit">Fuera de límites</span>{% endif %}
+            {% if row.is_noise %}<span class="badge noise">Ruido: {{ row.noise_reason }}</span>{% endif %}
+            {% if row.bits %}<ul class="bits">{% for bit in row.bits %}<li>{{ bit }}</li>{% endfor %}</ul>{% endif %}
+          </td>
+          <td class="val">{{ row.value_a }}</td>
+          <td class="val">{{ row.value_b }}</td>
+          <td class="delta">{{ row.delta }}</td>
+          <td>{{ row.units }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% else %}
+  <p class="empty">No hay diferencias que mostrar con los filtros actuales.</p>
+  {% endfor %}
+
+  <footer>Valores físicos = valor raw × SCALING del propio DCF. Los parámetros de monitorización se ocultan salvo que se indique lo contrario.</footer>
+</div>
+</body>
+</html>
