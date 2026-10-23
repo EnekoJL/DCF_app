@@ -37,9 +37,9 @@ _REPLACEMENTS = {
     "\u2264": "<=",
     "\u2265": ">=",
 }
-_COLUMNS = ("Objeto", "Parámetro", "Valor A", "Valor B", "d", "Unidad")
-_COL_WIDTHS = (24, 101, 42, 42, 36, 22)
-_MOTOR_RGB = (180, 83, 9)
+_COLUMNS = ("Objeto", "Parámetro", "Antes (A)", "Después (B)", "Unidad")
+_COL_WIDTHS = (26, 141, 45, 45, 20)
+_FOCUS_RGB = (30, 58, 138)
 _HEADER_RGB = (238, 241, 245)
 _MUTED_RGB = (107, 114, 128)
 
@@ -93,19 +93,11 @@ class PdfReportExporter:
             ("B", "Archivo nuevo", result.file_b),
         ):
             self._file_line(pdf, tag, label, info)
-        s = result.summary
         pdf.ln(1)
         pdf.set_font(FONT, "B", 9)
         pdf.cell(
-            0,
-            5,
-            sanitize(
-                f"Cambios relevantes: {s.relevant}   ·   ★ Control de motor: {s.motor_control}"
-                f"   ·   Monitorización (ruido): {s.noise}   ·   Mostrados: {len(result.changes)}"
-                f"   ·   Checksum: {'difiere' if result.checksum_differs else 'igual'}"
-            ),
-            new_x="LMARGIN",
-            new_y="NEXT",
+            0, 5, sanitize(f"Cambios en el informe: {len(result.changes)}"),
+            new_x="LMARGIN", new_y="NEXT",
         )
         if result.firmware_mismatch:
             pdf.set_text_color(185, 28, 28)
@@ -133,7 +125,7 @@ class PdfReportExporter:
             sanitize(
                 f"{info.display_name}  ·  modificado {info.modification_date} "
                 f"{info.modification_time}  ·  producto {info.product_number or '—'}  ·  "
-                f"firmware {info.revision_number or '—'}  ·  checksum {info.checksum or '—'}"
+                f"firmware {info.revision_number or '—'}"
             ),
             new_x="LMARGIN",
             new_y="NEXT",
@@ -146,9 +138,8 @@ class PdfReportExporter:
         pdf.ln(2)
         pdf.set_font(FONT, "B", 11)
         if group.motor_control:
-            pdf.set_text_color(*_MOTOR_RGB)
-        star = "★ " if group.motor_control else ""
-        pdf.cell(0, 7, sanitize(f"{star}{group.label} ({len(group.rows)})"), new_x="LMARGIN",
+            pdf.set_text_color(*_FOCUS_RGB)
+        pdf.cell(0, 7, sanitize(f"{group.label} ({len(group.rows)})"), new_x="LMARGIN",
                  new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
         pdf.set_font(FONT, size=8)
@@ -169,12 +160,10 @@ class PdfReportExporter:
                 tags = [row.kind_label] if row.kind != "modified" else []
                 if row.out_of_limits:
                     tags.append("fuera de límites")
-                if row.is_noise:
-                    tags.append(f"ruido: {row.noise_reason}")
                 if tags:
                     name += f"  [{', '.join(tags)}]"
                 if row.bits:
                     name += "\n" + "\n".join(f"  - {b}" for b in row.bits)
                 cells = table.row()
-                for value in (row.key, name, row.value_a, row.value_b, row.delta, row.units):
+                for value in (row.key, name, row.value_a, row.value_b, row.units):
                     cells.cell(sanitize(value))

@@ -17,7 +17,12 @@ CIRCE = SAMPLES / "circe-MS2223.dcf"
 CIRCE_V8 = SAMPLES / "DCF_10_04-v8_Circe_FuncionaPresentacion.dcf"
 PRIMER = SAMPLES / "Primer_mapa_fk1.dcf"
 MOTORLAND = SAMPLES / "Motorland_Carrera1_100_30.dcf"
-ALL_SAMPLES = (CIRCE, CIRCE_V8, PRIMER, MOTORLAND)
+MOTORLAND_RACE2 = SAMPLES / "Motorland_Carrera2_100..150_30.dcf"
+MOTORLAND_QUALY = SAMPLES / "Motorland_Qualy1_120_40.dcf"
+MOTORLAND_V7 = SAMPLES / "Motorland_v7_45kW.dcf"
+ALL_SAMPLES = (
+    CIRCE, CIRCE_V8, PRIMER, MOTORLAND, MOTORLAND_RACE2, MOTORLAND_QUALY, MOTORLAND_V7
+)
 
 
 @pytest.fixture(scope="session")

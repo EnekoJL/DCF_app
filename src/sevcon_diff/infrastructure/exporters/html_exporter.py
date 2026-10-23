@@ -33,7 +33,6 @@ class HtmlReportExporter:
             result=result,
             a=result.file_a,
             b=result.file_b,
-            summary=result.summary,
             groups=build_groups(result),
             shown=len(result.changes),
             generated=generated_at(),

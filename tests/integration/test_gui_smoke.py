@@ -41,12 +41,13 @@ def test_window_compares_and_filters(compare: CompareDcfFiles) -> None:
         assert controller.result is not None
         app.update()
         tree = app._table._tree
-        assert len(tree.get_children()) == controller.result.summary.relevant
+        shown = sum(len(tree.get_children(g)) for g in tree.get_children())
+        assert shown == len(controller.current_view().changes)  # type: ignore[union-attr]
         tree.selection_set("4641sub3")
         app.update()
-        controller.select_group("__motor__")
-        controller.set_show_noise(True)
+        controller.set_include_other(True)
+        controller.select_group("can_pdo")
         app.update()
-        assert len(tree.get_children()) >= controller.result.summary.motor_control
+        assert tree.get_children() == ("group:can_pdo",)
     finally:
         app.destroy()

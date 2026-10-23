@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import queue
-import tkinter as tk
 from collections.abc import Callable
 from pathlib import Path
 from tkinter import filedialog, messagebox
@@ -13,127 +12,131 @@ import customtkinter as ctk
 from sevcon_diff.presentation import strings_es as s
 from sevcon_diff.presentation.presenter import CompareController
 from sevcon_diff.presentation.view_models import (
-    ChangeRow,
-    DetailViewModel,
     FileCaption,
-    GroupItem,
+    GroupOption,
+    GroupSection,
     SummaryViewModel,
 )
-from sevcon_diff.presentation.widgets.detail_panel import DetailPanel
 from sevcon_diff.presentation.widgets.diff_table import DiffTable
 from sevcon_diff.presentation.widgets.file_selector import FileSelector
-from sevcon_diff.presentation.widgets.group_sidebar import GroupSidebar
 from sevcon_diff.presentation.widgets.summary_bar import SummaryBar
-from sevcon_diff.presentation.widgets.theme import MUTED
+from sevcon_diff.presentation.widgets.theme import (
+    ACCENT,
+    ACCENT_HOVER,
+    CARD_BORDER,
+    CHIP,
+    FONT_FAMILY,
+    MUTED,
+    SECONDARY_HOVER,
+    TEXT,
+    WINDOW,
+)
 
-MIN_SIZE = (1280, 760)
+MIN_SIZE = (1180, 720)
 _POLL_MS = 40
-_SASH_COLORS = ("gray80", "gray22")
+_PAD = 20
 
 
 class SevconDiffApp(ctk.CTk):  # type: ignore[misc]
     """Implements the ``CompareView`` protocol of the presenter."""
 
     def __init__(self, controller: CompareController) -> None:
-        super().__init__()
+        super().__init__(fg_color=WINDOW)
         self._controller = controller
         self._ui_queue: queue.SimpleQueue[Callable[[], None]] = queue.SimpleQueue()
         self.title(s.APP_TITLE)
         self.minsize(*MIN_SIZE)
-        self.geometry(f"{MIN_SIZE[0] + 140}x{MIN_SIZE[1] + 80}")
+        self.geometry(f"{MIN_SIZE[0] + 180}x{MIN_SIZE[1] + 120}")
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
 
+        self._build_header()
         self._build_file_bar()
-        self._summary = SummaryBar(self)
-        self._summary.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 10))
-        self._build_body()
+        self._summary = SummaryBar(
+            self,
+            on_group=controller.select_group,
+            on_search=controller.set_search,
+            on_include_other=controller.set_include_other,
+        )
+        self._summary.grid(row=2, column=0, sticky="ew", padx=_PAD, pady=(18, 10))
+        self._table = DiffTable(self, on_select=controller.select_change)
+        self._table.grid(row=3, column=0, sticky="nsew", padx=_PAD)
         self._build_footer()
 
         ctk.AppearanceModeTracker.add(self._on_appearance_changed, self)
-        self._on_appearance_changed(ctk.get_appearance_mode())
         self.after(_POLL_MS, self._drain_ui_queue)
         controller.attach(self, self._ui_queue.put)
 
     # --- layout -------------------------------------------------------------------------
+    def _build_header(self) -> None:
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=_PAD, pady=(16, 12))
+        header.grid_columnconfigure(2, weight=1)
+        ctk.CTkLabel(
+            header, text=s.HEADER_TITLE, text_color=TEXT,
+            font=ctk.CTkFont(FONT_FAMILY, 18, "bold"),
+        ).grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(
+            header, text=s.HEADER_SUBTITLE, text_color=MUTED, font=ctk.CTkFont(FONT_FAMILY, 12)
+        ).grid(row=0, column=1, sticky="w", padx=(12, 0), pady=(3, 0))
+        appearance = ctk.CTkSegmentedButton(
+            header, values=list(s.APPEARANCE_MODES), command=self._set_appearance, height=28,
+            font=ctk.CTkFont(FONT_FAMILY, 11), selected_color=ACCENT,
+            selected_hover_color=ACCENT_HOVER, unselected_color=CHIP,
+            unselected_hover_color=SECONDARY_HOVER, text_color=TEXT, fg_color=CHIP,
+        )
+        appearance.set(next(iter(s.APPEARANCE_MODES)))
+        appearance.grid(row=0, column=3, sticky="e")
+
     def _build_file_bar(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
-        bar.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 10))
-        bar.grid_columnconfigure((0, 2), weight=1)
+        bar.grid(row=1, column=0, sticky="ew", padx=_PAD)
+        bar.grid_columnconfigure((0, 2), weight=1, uniform="files")
         self._file_a = FileSelector(bar, "A", s.FILE_A_TITLE, self._controller.set_path_a)
-        self._file_a.grid(row=0, column=0, sticky="ew")
+        self._file_a.grid(row=0, column=0, sticky="nsew")
         ctk.CTkButton(
-            bar, text=s.SWAP, width=44, height=44, font=ctk.CTkFont(size=18),
+            bar, text=s.SWAP, width=40, height=40, corner_radius=20, fg_color=CHIP,
+            hover_color=SECONDARY_HOVER, text_color=TEXT, font=ctk.CTkFont(FONT_FAMILY, 16),
             command=self._controller.swap,
         ).grid(row=0, column=1, padx=10)
         self._file_b = FileSelector(bar, "B", s.FILE_B_TITLE, self._controller.set_path_b)
-        self._file_b.grid(row=0, column=2, sticky="ew")
+        self._file_b.grid(row=0, column=2, sticky="nsew")
         self._compare_button = ctk.CTkButton(
-            bar, text=s.COMPARE, width=140, height=44,
-            font=ctk.CTkFont(size=14, weight="bold"), command=self._controller.compare,
+            bar, text=s.COMPARE, width=150, corner_radius=12, fg_color=ACCENT,
+            hover_color=ACCENT_HOVER, font=ctk.CTkFont(FONT_FAMILY, 14, "bold"),
+            command=self._controller.compare,
         )
-        self._compare_button.grid(row=0, column=3, padx=(12, 0))
-
-    def _build_body(self) -> None:
-        self._panes = tk.PanedWindow(
-            self, orient=tk.HORIZONTAL, sashwidth=6, bd=0, relief="flat", showhandle=False
-        )
-        self._panes.grid(row=2, column=0, sticky="nsew", padx=16)
-        self._sidebar = GroupSidebar(
-            self._panes,
-            on_group=self._controller.select_group,
-            on_search=self._controller.set_search,
-            on_show_noise=self._controller.set_show_noise,
-            on_motor_only=self._controller.set_motor_only,
-        )
-        self._table = DiffTable(self._panes, on_select=self._controller.select_change)
-        self._detail = DetailPanel(self._panes)
-        scale = ctk.ScalingTracker.get_widget_scaling(self)  # tk.PanedWindow is not scaled
-        self._panes.add(
-            self._sidebar, minsize=round(220 * scale), width=round(260 * scale), stretch="never"
-        )
-        self._panes.add(self._table, minsize=round(480 * scale), stretch="always")
-        self._panes.add(
-            self._detail, minsize=round(280 * scale), width=round(360 * scale), stretch="never"
-        )
+        self._compare_button.grid(row=0, column=3, sticky="ns", padx=(12, 0))
 
     def _build_footer(self) -> None:
         footer = ctk.CTkFrame(self, fg_color="transparent")
-        footer.grid(row=3, column=0, sticky="ew", padx=16, pady=10)
-        footer.grid_columnconfigure(3, weight=1)
+        footer.grid(row=4, column=0, sticky="ew", padx=_PAD, pady=12)
+        footer.grid_columnconfigure(0, weight=1)
+        self._status = ctk.CTkLabel(
+            footer, text="", anchor="w", text_color=MUTED, font=ctk.CTkFont(FONT_FAMILY, 11)
+        )
+        self._status.grid(row=0, column=0, sticky="ew")
         self._export_buttons = [
             ctk.CTkButton(
-                footer, text=s.EXPORT_HTML, width=130, state="disabled",
-                command=lambda: self._export("html", ".html", s.HTML_FILETYPES),
-            ),
-            ctk.CTkButton(
-                footer, text=s.EXPORT_PDF, width=130, state="disabled",
-                command=lambda: self._export("pdf", ".pdf", s.PDF_FILETYPES),
-            ),
+                footer, text=text, width=128, height=32, corner_radius=8, state="disabled",
+                fg_color="transparent", border_width=1, border_color=CARD_BORDER,
+                hover_color=SECONDARY_HOVER, text_color=TEXT,
+                text_color_disabled=MUTED, font=ctk.CTkFont(FONT_FAMILY, 12),
+                command=command,
+            )
+            for text, command in (
+                (s.EXPORT_HTML, lambda: self._export("html", ".html", s.HTML_FILETYPES)),
+                (s.EXPORT_PDF, lambda: self._export("pdf", ".pdf", s.PDF_FILETYPES)),
+            )
         ]
-        for col, button in enumerate(self._export_buttons):
-            button.grid(row=0, column=col, padx=(0, 8))
-        ctk.CTkButton(footer, text=s.IMPACT, state="disabled", fg_color="gray40").grid(
-            row=0, column=2, padx=(0, 12)
-        )
-        self._status = ctk.CTkLabel(footer, text="", anchor="w", text_color=MUTED)
-        self._status.grid(row=0, column=3, sticky="ew")
-        ctk.CTkLabel(footer, text=s.APPEARANCE, text_color=MUTED).grid(
-            row=0, column=4, padx=(12, 6)
-        )
-        appearance = ctk.CTkSegmentedButton(
-            footer, values=list(s.APPEARANCE_MODES), command=self._set_appearance
-        )
-        appearance.set(next(iter(s.APPEARANCE_MODES)))
-        appearance.grid(row=0, column=5)
+        for col, button in enumerate(self._export_buttons, start=1):
+            button.grid(row=0, column=col, padx=(8, 0))
 
     # --- theming ------------------------------------------------------------------------
     def _set_appearance(self, label: str) -> None:
         ctk.set_appearance_mode(s.APPEARANCE_MODES[label])
 
     def _on_appearance_changed(self, mode: str) -> None:
-        dark = mode.lower() == "dark"
-        self._panes.configure(bg=_SASH_COLORS[1] if dark else _SASH_COLORS[0])
         self._table.apply_theme(mode)
 
     def destroy(self) -> None:
@@ -183,14 +186,14 @@ class SevconDiffApp(ctk.CTk):  # type: ignore[misc]
         for button in self._export_buttons:
             button.configure(state="normal" if summary is not None else "disabled")
 
-    def show_groups(self, groups: list[GroupItem], selected: str) -> None:
-        self._sidebar.set_groups(groups, selected)
+    def show_groups(self, groups: list[GroupOption], selected: str) -> None:
+        self._summary.set_groups(groups, selected)
 
-    def show_rows(self, rows: list[ChangeRow], status: str) -> None:
-        self._table.set_rows(rows, status)
+    def show_sections(self, sections: list[GroupSection]) -> None:
+        self._table.set_sections(sections)
 
-    def show_detail(self, detail: DetailViewModel | None) -> None:
-        self._detail.show(detail)
+    def show_hint(self, text: str) -> None:
+        self._table.set_hint(text)
 
     def show_status(self, message: str) -> None:
         self._status.configure(text=message)

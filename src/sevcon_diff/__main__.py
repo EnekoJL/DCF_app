@@ -36,15 +36,8 @@ def print_diff(result: DiffResult, query: DiffQuery, out: TextIO) -> None:
     out.write(f"B: {b.path}  ({b.modification_date} {b.modification_time})\n")
     if result.firmware_mismatch:
         out.write(f"!! Firmware distinto: {a.revision_number} -> {b.revision_number}\n")
-    out.write(
-        f"Checksum: {a.checksum} -> {b.checksum}"
-        f"{'  (difiere)' if result.checksum_differs else ''}\n"
-    )
     s = result.summary
-    out.write(
-        f"Cambios: {s.relevant} relevantes ({s.motor_control} control de motor), "
-        f"{s.noise} de monitorización ocultos\n"
-    )
+    out.write(f"Cambios: {s.relevant} ({s.motor_control} en control de motor y límites)\n")
     filtered = query.apply_to(result)
     for group, changes in filtered.grouped():
         out.write(f"\n== {group.display_label} ({len(changes)}) ==\n")
@@ -93,7 +86,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--cli", nargs=2, metavar=("A", "B"), type=Path, help="imprime el diff en consola"
     )
     parser.add_argument("--all", action="store_true", help="incluye monitorización (ruido)")
-    parser.add_argument("--motor-only", action="store_true", help="solo control de motor")
+    parser.add_argument("--motor-only", action="store_true", help="solo control de motor y límites")
     args = parser.parse_args(argv)
     if args.cli:
         if hasattr(sys.stdout, "reconfigure"):

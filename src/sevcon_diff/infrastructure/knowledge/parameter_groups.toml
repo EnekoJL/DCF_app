@@ -11,8 +11,9 @@
 #   2. A igual especificidad, gana la primera que aparece en este fichero.
 #   3. Sin coincidencia -> grupo `fallback`.
 #
-# motor_control = true marca los grupos que la UI destaca con ★ y filtra con
-# "Solo control de motor". Ver docs/sevcon_parameters.md para el porqué de cada objeto.
+# motor_control = true marca las áreas de foco (control de motor y límites de motor, batería y
+# tensión): la UI las muestra por defecto y deja el resto en "Otras áreas".
+# Ver docs/sevcon_parameters.md para el porqué de cada objeto.
 
 fallback = "other"
 
@@ -174,9 +175,9 @@ rules = [
 
 [[group]]
 id = "battery"
-label = "Batería / potencia"
-motor_control = false
-order = 120
+label = "Límites de batería / potencia"
+motor_control = true
+order = 85
 rules = [
     { index = "4623" },
     { index = "2870" },

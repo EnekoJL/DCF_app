@@ -22,7 +22,7 @@ def test_html_export(result: DiffResult, tmp_path: Path) -> None:
     HtmlReportExporter().export(result, path)
     html = path.read_text(encoding="utf-8")
     assert html.startswith("<!DOCTYPE html>")
-    assert "★ Datos base del motor" in html
+    assert "Datos base del motor" in html and "Checksum" not in html
     assert "4641h sub2" in html
     assert "<link" not in html and "<script" not in html  # self-contained
     assert html.index("Datos base del motor") < html.index("CAN / PDO")

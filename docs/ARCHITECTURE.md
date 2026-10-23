@@ -33,16 +33,27 @@ presentation  ──►  application  ──►  domain  ◄──  infrastructu
 2. `DcfDiffEngine.diff(doc_a, doc_b)` → unión de `ObjectKey`, compara el **valor decodificado**
    (`ValueDecoder`) → `ParameterChange` (MODIFIED/ADDED/REMOVED) con bitfields cambiados.
 3. Cada cambio se enriquece con `ParameterClassifier` (grupo) y `NoiseFilter` (ruido + motivo).
-   El objeto checksum (`[indicators]` de `noise_rules.toml`) solo alimenta el resumen.
+   El objeto checksum (`[indicators]` de `noise_rules.toml`) se excluye del diff; no se muestra
+   en la UI ni en los informes (cambia con cualquier parámetro, no aporta).
 4. `DiffResult` (cambios + `DiffSummary` + metadatos de ambos ficheros + checksum + aviso de firmware).
-5. La UI aplica `DiffQuery` (texto, grupos, mostrar ruido, solo motor) sin recalcular el diff.
+5. La UI aplica `DiffQuery` (texto, área, foco) sin recalcular el diff. Por defecto solo muestra
+   las áreas de foco (`motor_control = true` en el TOML: control de motor y límites de motor,
+   batería y tensión); el interruptor "Otras áreas" añade el resto. La monitorización (ruido) y
+   los parámetros sin cambios nunca se muestran ni se cuentan en la GUI.
+
+## GUI (presentation)
+
+De arriba abajo: cabecera (título + tema) → selectores A ⇄ B + Comparar → barra de resumen
+(nº de cambios, firmware, búsqueda, desplegable de área, interruptor "Otras áreas") → tabla a
+ancho completo agrupada por área (Parámetro · Antes · ▲/▼ · Después · Unidad; los bitfields como
+filas hijas) → línea de ayuda con objeto y descripción Sevcon de la fila seleccionada → exportar.
 
 ## Extensión prevista: agente de impacto
 
 `ChangeImpactAnalyzer` recibirá un `DiffResult` filtrado (sin ruido) y devolverá un `ImpactReport`
 (resumen + riesgos por cambio). La implementación irá en `infrastructure/ai/` (cliente Claude API),
-usando `docs/sevcon_parameters.md` como contexto. La UI ya reserva el botón
-"Analizar impacto (próximamente)". `DiffResult` debe seguir siendo autocontenido (nombre, grupo,
+usando `docs/sevcon_parameters.md` como contexto. Cuando exista, se añadirá un botón
+"Analizar impacto" en el pie de la ventana. `DiffResult` debe seguir siendo autocontenido (nombre, grupo,
 valores físicos, unidades, descripción Sevcon) para poder serializarlo a prompt/JSON (`to_dict()`).
 
 ## Cómo extender sin tocar código existente (OCP)

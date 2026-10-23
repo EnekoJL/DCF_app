@@ -19,17 +19,15 @@ from sevcon_diff.domain.ports import ReportExporter
 from sevcon_diff.presentation import strings_es as s
 from sevcon_diff.presentation.view_models import (
     GROUP_ALL,
-    GROUP_MOTOR,
-    ChangeRow,
-    DetailViewModel,
     FileCaption,
-    GroupItem,
+    GroupOption,
+    GroupSection,
     SummaryViewModel,
-    build_detail,
-    build_groups,
+    build_group_options,
+    build_hint,
+    build_sections,
     build_summary,
     file_caption,
-    to_rows,
 )
 
 UiScheduler = Callable[[Callable[[], None]], None]
@@ -40,9 +38,9 @@ class CompareView(Protocol):
     def show_busy(self, busy: bool) -> None: ...
     def show_file_captions(self, a: FileCaption, b: FileCaption) -> None: ...
     def show_summary(self, summary: SummaryViewModel | None) -> None: ...
-    def show_groups(self, groups: list[GroupItem], selected: str) -> None: ...
-    def show_rows(self, rows: list[ChangeRow], status: str) -> None: ...
-    def show_detail(self, detail: DetailViewModel | None) -> None: ...
+    def show_groups(self, groups: list[GroupOption], selected: str) -> None: ...
+    def show_sections(self, sections: list[GroupSection]) -> None: ...
+    def show_hint(self, text: str) -> None: ...
     def show_status(self, message: str) -> None: ...
     def show_error(self, message: str) -> None: ...
 
@@ -62,7 +60,7 @@ class CompareController:
         self._path_a: Path | None = None
         self._path_b: Path | None = None
         self._result: DiffResult | None = None
-        self._query = DiffQuery()
+        self._query = DiffQuery(motor_only=True)
         self._group = GROUP_ALL
         self._visible: dict[str, ParameterChange] = {}
 
@@ -129,11 +127,8 @@ class CompareController:
         view = self.view
         view.show_busy(False)
         view.show_file_captions(file_caption(result.file_a), file_caption(result.file_b))
-        view.show_summary(build_summary(result))
         self._refresh()
-        view.show_status(
-            s.STATUS_DONE.format(relevant=result.summary.relevant, noise=result.summary.noise)
-        )
+        view.show_status(s.STATUS_DONE)
 
     def _on_failed(self, message: str) -> None:
         self.view.show_busy(False)
@@ -145,12 +140,9 @@ class CompareController:
         self._query = replace(self._query, text=text)
         self._refresh()
 
-    def set_show_noise(self, show: bool) -> None:
-        self._query = replace(self._query, show_noise=show)
-        self._refresh()
-
-    def set_motor_only(self, motor_only: bool) -> None:
-        self._query = replace(self._query, motor_only=motor_only)
+    def set_include_other(self, include: bool) -> None:
+        """Also show changes outside the focus areas (CAN, I/O, traction profiles...)."""
+        self._query = replace(self._query, motor_only=not include)
         self._refresh()
 
     def select_group(self, group_id: str) -> None:
@@ -160,8 +152,6 @@ class CompareController:
     def _group_query(self) -> DiffQuery:
         if self._group == GROUP_ALL:
             return self._query
-        if self._group == GROUP_MOTOR:
-            return replace(self._query, motor_only=True)
         return replace(self._query, group_ids=frozenset({self._group}))
 
     def current_view(self) -> DiffResult | None:
@@ -171,20 +161,25 @@ class CompareController:
         return self._group_query().apply_to(self._result)
 
     def _refresh(self) -> None:
-        if self._result is None:
+        result = self._result
+        if result is None:
             return
-        base = self._query.apply(self._result.changes)
-        self.view.show_groups(build_groups(self._result, base), self._group)
-        shown = self._group_query().apply(self._result.changes)
+        include_other = not self._query.motor_only
+        in_scope = replace(self._query, text="").apply(result.changes)
+        self.view.show_summary(build_summary(result, len(in_scope), include_other))
+        options = build_group_options(result, in_scope)
+        if self._group not in {o.id for o in options}:
+            self._group = GROUP_ALL
+        self.view.show_groups(options, self._group)
+        shown = self._group_query().apply(result.changes)
         self._visible = {c.key.section: c for c in shown}
-        status = s.ROWS_SHOWN.format(shown=len(shown), total=self._result.summary.total)
-        self.view.show_rows(to_rows(shown), status)
-        self.view.show_detail(None)
+        self.view.show_sections(build_sections(result.with_changes(shown)))
+        self.view.show_hint(s.HINT_EMPTY)
 
-    # --- detail / export ----------------------------------------------------------------
+    # --- selection / export -------------------------------------------------------------
     def select_change(self, iid: str | None) -> None:
         change = self._visible.get(iid) if iid else None
-        self.view.show_detail(build_detail(change) if change else None)
+        self.view.show_hint(build_hint(change) if change else s.HINT_EMPTY)
 
     def export(self, fmt: str, path: Path) -> bool:
         current = self.current_view()

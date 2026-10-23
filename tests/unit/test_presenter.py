@@ -9,7 +9,6 @@ from conftest import MOTORLAND, PRIMER
 from sevcon_diff.application.compare_service import CompareDcfFiles
 from sevcon_diff.domain.diff_models import DiffResult
 from sevcon_diff.presentation.presenter import CompareController
-from sevcon_diff.presentation.view_models import GROUP_MOTOR
 
 
 class RecordingView:
@@ -51,27 +50,33 @@ def test_compare_flow(compare: CompareDcfFiles, tmp_path: Path) -> None:
     thread.join(timeout=30)
 
     assert view.calls["show_busy"] == [(True,), (False,)]
-    rows, _status = view.last("show_rows")
-    assert rows and not any(r.is_noise for r in rows)
-    keys = {r.iid for r in rows}
-    assert "4641sub3" in keys
+    sections = view.last("show_sections")[0]
+    rows = [row for section in sections for row in section.rows]
+    assert rows and {r.iid for r in rows} >= {"4641sub3", "4611sub1"}
+    assert all(c.is_motor_control for c in controller.current_view().changes)  # type: ignore[union-attr]
+    assert not any(c.is_noise for c in controller.current_view().changes)  # type: ignore[union-attr]
+    im_min = next(r for r in rows if r.iid == "4641sub3")
+    assert (im_min.value_a, im_min.value_b, im_min.trend) == ("-600", "-250", "▲")
+    summary = view.last("show_summary")[0]
+    assert summary.headline == f"{len(rows)} cambios" and summary.other_count > 0
 
-    controller.set_show_noise(True)
-    assert len(view.last("show_rows")[0]) > len(rows)
-    controller.set_show_noise(False)
+    options = view.last("show_groups")[0]
+    assert all(o.count > 0 for o in options)
+    controller.set_include_other(True)
+    all_rows = [r for sec in view.last("show_sections")[0] for r in sec.rows]
+    assert len(all_rows) == len(rows) + summary.other_count
+    controller.set_include_other(False)
 
-    controller.select_group(GROUP_MOTOR)
-    motor_rows = view.last("show_rows")[0]
-    assert motor_rows and all(r.motor_control for r in motor_rows)
+    controller.select_group("torque_limits")
+    sections = view.last("show_sections")[0]
+    assert [sec.id for sec in sections] == ["torque_limits"]
 
-    controller.select_change("4641sub3")
-    detail = view.last("show_detail")[0]
-    assert detail is not None and "Im min" in detail.title
-    assert any(value.startswith("-600") for _name, value in detail.fields)
+    controller.select_change("4611sub1")
+    assert view.last("show_hint")[0].startswith("4611h sub1")
 
     assert controller.export("html", tmp_path / "r.html")
     exported, _path = exporter.exported[0]
-    assert all(c.is_motor_control for c in exported.changes)
+    assert {c.group.id for c in exported.changes} == {"torque_limits"}
 
 
 def test_compare_error_is_reported(compare: CompareDcfFiles, tmp_path: Path) -> None:

@@ -45,5 +45,7 @@ python -m sevcon_diff        # GUI (en Windows: run_app.bat)
 
 ## Estado
 
-- v1: comparación + filtros + vista de detalle + export HTML/PDF + CLI de depuración.
+- v1: comparación + filtros + export HTML/PDF + CLI de depuración.
+- v1.1 (2026-10-23): GUI rediseñada — tabla única a ancho completo (antes/después), solo áreas
+  de foco por defecto, sin checksum ni monitorización.
 - Futuro: `ChangeImpactAnalyzer` (agente IA que explica el efecto esperado de los cambios).
