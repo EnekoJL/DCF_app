@@ -10,10 +10,11 @@ y `docs/sevcon_parameters.md`.
 - **v1 implementada** (2026-10-20): comparación + filtros + vista de detalle + export HTML/PDF +
   CLI de depuración. 128 tests en verde, `ruff` y `mypy --strict` limpios.
 - Pendiente: revisión visual de la GUI por el usuario en Windows.
-- Sin commits en git todavía (repo inicializado, todo sin trackear).
+- Git: commit inicial `93b3fa3` en `master` (2026-10-23). Sin remoto configurado.
 
 ## Registro de cambios
 
+- **2026-10-23** — Commit inicial (`93b3fa3`) con todo el proyecto, DCF y PDFs incluidos.
 - **2026-10-23** — Reorganización de carpetas:
   - DCF originales de la raíz → `data/originals/` (idénticos a `data/samples/`).
   - `datasheet/` → `docs/datasheets/`.
