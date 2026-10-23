@@ -12,7 +12,10 @@ y `docs/sevcon_parameters.md`.
 - GUI v1.1 revisada y aprobada por el usuario en Windows (2026-10-23).
 - Tests de GUI en WSL: se ejecutan sobre WSLg (DISPLAY=:0) y abren una ventana real. Lanzarlos
   siempre con `timeout`.
-- Git: commit inicial `93b3fa3` en `master` (2026-10-23). Sin remoto configurado.
+- Git: remoto `origin` = https://github.com/EnekoJL/DCF_app.git. La rama local `master` sigue a
+  `origin/main`. El 2026-10-23 se sobrescribió `main` (force push, decisión del usuario): antes
+  contenía otro proyecto, "DCF calibration studio" (PySide6, commit `ae35bb3`), del que hay copia
+  local en la rama `backup-calibration-studio`.
 
 ## Registro de cambios
 
