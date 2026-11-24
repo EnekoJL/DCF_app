@@ -19,6 +19,14 @@ y `docs/sevcon_parameters.md`.
 
 ## Registro de cambios
 
+- **2026-11-24** — Preparado para entregarlo a un profesor. Comprobado desde un clon limpio:
+  instalación, 131 tests, `ruff`, `mypy` y CLI correctos.
+  - Añadido `.gitattributes`: `*.bat` con CRLF (un `.bat` en LF puede fallar en `cmd`), y `*.dcf`
+    y `*.pdf` sin conversión.
+  - README: cómo clonar o descargar el ZIP, `run_app.bat --cli` en Windows y una sección para
+    Linux/macOS (`python3-tk`).
+  - **Duda abierta:** el repositorio es público e incluye los manuales de Sevcon/DVT y los PDF
+    de un TFG y un TFM de terceros. Falta decidir si se pueden redistribuir.
 - **2026-10-23** — Añadidos 3 DCF reales de Motorland (`Motorland_Carrera2_100..150_30`,
   `Motorland_Qualy1_120_40`, `Motorland_v7_45kW`) a `data/originals/` y `data/samples/`, y a
   `ALL_SAMPLES` en los tests. Se parsean bien y no tienen cambios sin clasificar. 131 tests en verde.
