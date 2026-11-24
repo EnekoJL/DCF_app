@@ -9,7 +9,7 @@ y `docs/sevcon_parameters.md`.
 
 - **v1 implementada** (2026-10-20): comparación + filtros + vista de detalle + export HTML/PDF +
   CLI de depuración. 128 tests en verde, `ruff` y `mypy --strict` limpios.
-- 2026-11-24: v1.2 (curva par–rpm). 12 DCF de ejemplo y 187 tests en verde. Repositorio público, preparado para que
+- 2026-11-24: v1.2 (curva par–rpm). 12 DCF de ejemplo y 189 tests en verde. Repositorio público, preparado para que
   lo use un profesor (README con clonado/ZIP, `.gitattributes` con CRLF para `.bat`).
 - GUI v1.1 revisada y aprobada por el usuario en Windows (2026-10-23).
 - Tests de GUI en WSL: se ejecutan sobre WSLg (DISPLAY=:0) y abren una ventana real. Lanzarlos
@@ -24,6 +24,13 @@ y `docs/sevcon_parameters.md`.
 
 ## Registro de cambios
 
+- **2026-11-24** — Ajustes en la curva par–rpm tras probarla en Windows: los textos se veían
+  pequeños. Fuentes más grandes en la gráfica y en el panel derecho, y líneas más gruesas. La
+  leyenda ya no repite el nombre del fichero (está en el título y en el panel). Los kW por punto
+  **solo** salen con "Mostrar curva de potencia" marcado (preferencia del usuario: vista limpia
+  por defecto). Nueva constante: corriente de desmagnetización `4641sub3` Im min (límite de Id
+  negativa para debilitamiento de campo; es el único parámetro de configuración de Id, porque
+  `4602sub20` "Maximum fluxing current" es una medida). 189 tests.
 - **2026-11-24** — Ventana "Curva par–rpm" (v1.2) implementada y verificada: 187 tests (sin
   saltar ninguno de GUI), `ruff`/`mypy` limpios. Comando de depuración: `--profile FICHERO...`.
   `run_app.bat` reinstala dependencias si cambia `pyproject.toml` (copia en

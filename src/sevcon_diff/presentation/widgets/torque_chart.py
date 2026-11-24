@@ -32,7 +32,7 @@ from sevcon_diff.presentation.widgets.torque_plot import draw_torque_chart
 _SIZE = (1320, 780)
 _MIN_SIZE = (900, 560)
 _PAD = 16
-_TABLE_WIDTH = 360
+_TABLE_WIDTH = 440
 _SLOT_COLOURS = {SLOT_A: SERIES_A, SLOT_B: SERIES_B}
 
 
@@ -52,13 +52,13 @@ class TorqueChartWindow(ctk.CTkToplevel):  # type: ignore[misc]
         header.grid_columnconfigure(0, weight=1)
         self._title_label = ctk.CTkLabel(
             header, text=chart.title, anchor="w", text_color=TEXT,
-            font=ctk.CTkFont(FONT_FAMILY, 15, "bold"),
+            font=ctk.CTkFont(FONT_FAMILY, 19, "bold"),
         )
         self._title_label.grid(row=0, column=0, sticky="ew")
         self._show_power = tk.BooleanVar(master=self, value=False)
         self.power_toggle = ctk.CTkCheckBox(
             header, text=s.CHART_SHOW_POWER, variable=self._show_power, command=self._redraw,
-            text_color=TEXT, font=ctk.CTkFont(FONT_FAMILY, 12),
+            text_color=TEXT, font=ctk.CTkFont(FONT_FAMILY, 14),
         )
         self.power_toggle.grid(row=0, column=1, sticky="e")
 
@@ -146,7 +146,7 @@ class TorqueChartWindow(ctk.CTkToplevel):  # type: ignore[misc]
 
         ctk.CTkLabel(
             body, text=s.CHART_CONSTANTS_TITLE, anchor="w", text_color=TEXT,
-            font=ctk.CTkFont(FONT_FAMILY, 13, "bold"),
+            font=ctk.CTkFont(FONT_FAMILY, 17, "bold"),
         ).grid(row=0, column=0, columnspan=4, sticky="ew", pady=(0, 6))
         row = 1
         for slot in (SLOT_A, SLOT_B):
@@ -156,11 +156,11 @@ class TorqueChartWindow(ctk.CTkToplevel):  # type: ignore[misc]
             ctk.CTkLabel(
                 body, text=f"{slot} · {name}", anchor="w", justify="left",
                 text_color=_SLOT_COLOURS[slot], wraplength=_TABLE_WIDTH - 40,
-                font=ctk.CTkFont(FONT_FAMILY, 11, "bold"),
+                font=ctk.CTkFont(FONT_FAMILY, 14, "bold"),
             ).grid(row=row, column=0, columnspan=4, sticky="ew")
             row += 1
 
-        head_font = ctk.CTkFont(FONT_FAMILY, 10, "bold")
+        head_font = ctk.CTkFont(FONT_FAMILY, 12, "bold")
         for col, (text, colour) in enumerate(
             (
                 (s.CHART_COL_CONSTANT, MUTED),
@@ -175,15 +175,15 @@ class TorqueChartWindow(ctk.CTkToplevel):  # type: ignore[misc]
             ).grid(row=row, column=col, sticky="ew", padx=(0 if col == 0 else 10, 0), pady=(12, 2))
         row += 1
 
-        regular = ctk.CTkFont(FONT_FAMILY, 12)
-        bold = ctk.CTkFont(FONT_FAMILY, 12, "bold")
-        small = ctk.CTkFont(FONT_FAMILY, 10)
+        regular = ctk.CTkFont(FONT_FAMILY, 15)
+        bold = ctk.CTkFont(FONT_FAMILY, 15, "bold")
+        small = ctk.CTkFont(FONT_FAMILY, 12)
         for const in chart.constants:
             value_colour = WARN if const.changed else TEXT
             value_font = bold if const.changed else regular
             ctk.CTkLabel(
                 body, text=const.label, anchor="w", justify="left", text_color=TEXT,
-                font=regular, wraplength=170,
+                font=regular, wraplength=210,
             ).grid(row=row, column=0, sticky="ew", pady=(6, 0))
             for col, value in ((1, const.value_a), (2, const.value_b)):
                 ctk.CTkLabel(
@@ -193,7 +193,7 @@ class TorqueChartWindow(ctk.CTkToplevel):  # type: ignore[misc]
                 body, text=const.units, anchor="w", text_color=MUTED, font=small
             ).grid(row=row, column=3, sticky="ew", padx=(10, 0), pady=(6, 0))
             ctk.CTkLabel(
-                body, text=const.key_label, anchor="w", text_color=MUTED, font=small, height=14
+                body, text=const.key_label, anchor="w", text_color=MUTED, font=small, height=18
             ).grid(row=row + 1, column=0, sticky="ew")
             row += 2
 

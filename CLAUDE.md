@@ -53,7 +53,8 @@ python -m sevcon_diff        # GUI (en Windows: run_app.bat)
 - v1.1 (2026-10-23): GUI rediseñada — tabla única a ancho completo (antes/después), solo áreas
   de foco por defecto, sin checksum ni monitorización.
 - v1.2 (2026-11-24): botón "Curva par–rpm" — mapas 4611h/4615h de A y B superpuestos,
-  potencia teórica P = T·ω en cada punto, constantes Ls/Ke/npp/Is max/par de pico. Nueva
+  potencia teórica P = T·ω en cada punto, constantes Ls/Ke/npp/Is max/Im min/par de pico
+  (kW por punto solo con "Mostrar curva de potencia"). Nueva
   dependencia: matplotlib. 12 DCF de ejemplo en `data/samples/`.
 - Repo público en GitHub (`EnekoJL/DCF_app`), pensado para que un profesor lo clone y ejecute.
 - Futuro: `ChangeImpactAnalyzer` (agente IA que explica el efecto esperado de los cambios).

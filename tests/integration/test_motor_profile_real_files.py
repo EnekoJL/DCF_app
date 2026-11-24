@@ -83,6 +83,26 @@ def test_chart_renders_headless(load: LoadMotorProfiles, tmp_path: Path) -> None
     assert (tmp_path / "chart_True.png").stat().st_size > 0
 
 
+def test_kw_labels_only_with_power_view(load: LoadMotorProfiles) -> None:
+    chart = build_motor_chart(one(load, PRIMER), one(load, MOTORLAND))
+
+    def kw_labels(show_power: bool) -> int:
+        fig = Figure()
+        FigureCanvasAgg(fig)
+        draw_torque_chart(fig, chart, show_power=show_power)
+        return sum(1 for t in fig.axes[0].texts if t.get_text().endswith(" kW"))
+
+    assert kw_labels(False) == 0
+    assert kw_labels(True) > 0
+
+
+def test_demagnetising_current_shown(load: LoadMotorProfiles) -> None:
+    chart = build_motor_chart(one(load, PRIMER), one(load, MOTORLAND))
+    im_min = {r.key_label: r for r in chart.constants}["4641h sub3"]
+    assert (im_min.value_a, im_min.value_b, im_min.units) == ("-600", "-250", "A(RMS)")
+    assert im_min.changed
+
+
 def test_ke_change_flagged_between_primer_and_motorland(load: LoadMotorProfiles) -> None:
     chart = build_motor_chart(one(load, PRIMER), one(load, MOTORLAND))
     rows = {r.key_label: r for r in chart.constants}

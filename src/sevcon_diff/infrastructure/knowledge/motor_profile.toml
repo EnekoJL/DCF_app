@@ -48,6 +48,11 @@ label = "Pares de polos (npp)"
 key = "4641sub2"
 label = "Corriente máx. estátor (Is max)"
 
+# Límite de Id negativa (debilitamiento de campo / desmagnetización), valor negativo.
+[[constant]]
+key = "4641sub3"
+label = "Corriente de desmagnetización (Im min)"
+
 [[constant]]
 key = "6076"
 label = "Par de pico"

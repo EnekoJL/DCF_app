@@ -89,7 +89,7 @@ def test_view_model_with_two_files() -> None:
     assert series.annotations[0] == ""  # 0 rpm -> 0 kW, not labelled
     assert series.annotations[1] == "31.4 kW"
     assert series.max_power_kw == pytest.approx(31.4159, rel=1e-4)
-    assert "máx 31.4 kW" in series.legend and series.legend.startswith("A · a.dcf")
+    assert "máx 31.4 kW" in series.legend and series.legend.startswith("A · Main")
     assert [r.slot for r in chart.references] == ["A", "B"]
     assert chart.references[0].text.endswith("100 Nm")
     (ke,) = chart.constants

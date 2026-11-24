@@ -27,7 +27,7 @@ def test_packaged_spec_loads() -> None:
     assert main.speed_key(9) == ObjectKey(0x4611, 0x12)
     assert len(spec.references) == 1
     assert spec.references[0].key == ObjectKey(0x6076)
-    assert len(spec.constants) == 5
+    assert len(spec.constants) == 6
     assert spec.constants[0].key == ObjectKey(0x4641, 0xA)
     assert spec.constants[1].key == ObjectKey(0x4641, 0x12)
 

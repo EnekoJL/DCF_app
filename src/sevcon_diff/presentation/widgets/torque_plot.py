@@ -28,7 +28,10 @@ from sevcon_diff.presentation.widgets.theme import (
 )
 
 _LINESTYLES = {LineStyle.SOLID: "-", LineStyle.DASHED: "--"}
-_ANNOTATION_FONT = 7.5
+_ANNOTATION_FONT = 11
+_TICK_FONT = 12.5
+_LABEL_FONT = 14.5
+_LEGEND_FONT = 12.5
 _HEADROOM = 1.15
 _fonts_ready = False
 
@@ -52,7 +55,7 @@ def _style_axes(ax: Axes, background: str, text: str, muted: str, grid: str) -> 
     ax.set_facecolor(background)
     for spine in ax.spines.values():
         spine.set_color(grid)
-    ax.tick_params(colors=muted, labelsize=8.5)
+    ax.tick_params(colors=muted, labelsize=_TICK_FONT)
     ax.xaxis.label.set_color(text)
     ax.yaxis.label.set_color(text)
 
@@ -74,14 +77,14 @@ def draw_torque_chart(
     fig.set_facecolor(background)
     ax = fig.add_subplot()
     _style_axes(ax, background, text, muted, grid)
-    ax.set_xlabel(s.CHART_AXIS_SPEED)
-    ax.set_ylabel(s.CHART_AXIS_TORQUE)
+    ax.set_xlabel(s.CHART_AXIS_SPEED, fontsize=_LABEL_FONT)
+    ax.set_ylabel(s.CHART_AXIS_TORQUE, fontsize=_LABEL_FONT)
     ax.grid(True, color=grid, linewidth=0.8)
     ax.set_axisbelow(True)
     if chart.empty:
         ax.text(
             0.5, 0.5, s.CHART_EMPTY, transform=ax.transAxes, ha="center", va="center",
-            color=muted, fontsize=11,
+            color=muted, fontsize=_LABEL_FONT,
         )
         ax.set_xticks([])
         ax.set_yticks([])
@@ -94,11 +97,13 @@ def draw_torque_chart(
         colour = slot_colour(series.slot, dark)
         (line,) = ax.plot(
             series.speeds, series.torques, color=colour, linestyle=_LINESTYLES[series.style],
-            linewidth=2, marker="o", markersize=5.5, markerfacecolor=colour,
-            markeredgecolor=background, markeredgewidth=1.2, label=series.legend, zorder=3,
+            linewidth=2.8, marker="o", markersize=8, markerfacecolor=colour,
+            markeredgecolor=background, markeredgewidth=1.5, label=series.legend, zorder=3,
         )
         handles.append(line)
-        # A above the points, B below: readable when both files are overlaid.
+        if not show_power:
+            continue
+        # kW per point only with the power view; A above the points, B below.
         above = series.slot == SLOT_A
         for speed, torque, label in zip(
             series.speeds, series.torques, series.annotations, strict=True
@@ -106,7 +111,7 @@ def draw_torque_chart(
             if label and (series.slot, speed, label) not in labelled:
                 labelled.add((series.slot, speed, label))
                 ax.annotate(
-                    label, (speed, torque), xytext=(0, 7 if above else -8),
+                    label, (speed, torque), xytext=(0, 10 if above else -11),
                     textcoords="offset points", ha="center", va="bottom" if above else "top",
                     fontsize=_ANNOTATION_FONT, color=colour, zorder=4,
                 )
@@ -131,11 +136,11 @@ def draw_torque_chart(
         power_ax = ax.twinx()
         _style_axes(power_ax, background, text, muted, grid)
         power_ax.patch.set_visible(False)
-        power_ax.set_ylabel(s.CHART_AXIS_POWER)
+        power_ax.set_ylabel(s.CHART_AXIS_POWER, fontsize=_LABEL_FONT)
         for series in chart.series:
             (line,) = power_ax.plot(
                 series.speeds, series.powers_kw, color=slot_colour(series.slot, dark),
-                linestyle=_LINESTYLES[series.style], linewidth=1.2, alpha=0.45,
+                linestyle=_LINESTYLES[series.style], linewidth=1.8, alpha=0.5,
                 label=series.power_legend, zorder=1,
             )
             handles.append(line)
@@ -143,5 +148,5 @@ def draw_torque_chart(
 
     fig.legend(
         handles=handles, loc="outside lower center", ncols=2 if len(handles) > 2 else 1,
-        fontsize=8, frameon=False, labelcolor=text, handlelength=4,
+        fontsize=_LEGEND_FONT, frameon=False, labelcolor=text, handlelength=4,
     )
