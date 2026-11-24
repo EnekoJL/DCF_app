@@ -9,6 +9,8 @@ y `docs/sevcon_parameters.md`.
 
 - **v1 implementada** (2026-10-20): comparación + filtros + vista de detalle + export HTML/PDF +
   CLI de depuración. 128 tests en verde, `ruff` y `mypy --strict` limpios.
+- 2026-11-24: v1.2 (curva par–rpm). 12 DCF de ejemplo y 187 tests en verde. Repositorio público, preparado para que
+  lo use un profesor (README con clonado/ZIP, `.gitattributes` con CRLF para `.bat`).
 - GUI v1.1 revisada y aprobada por el usuario en Windows (2026-10-23).
 - Tests de GUI en WSL: se ejecutan sobre WSLg (DISPLAY=:0) y abren una ventana real. Lanzarlos
   siempre con `timeout`.
@@ -16,9 +18,43 @@ y `docs/sevcon_parameters.md`.
   `origin/main`. El 2026-10-23 se sobrescribió `main` (force push, decisión del usuario): antes
   contenía otro proyecto, "DCF calibration studio" (PySide6, commit `ae35bb3`), del que hay copia
   local en la rama `backup-calibration-studio`.
+- Clones: desarrollo en WSL (`~/workdir/CFD_Sevcon`), copia de ejecución sincronizada por rsync
+  (`C:\Z-Eneko\CFD_Sevcon`, sin `.git`) y un clon de pruebas del usuario
+  (`C:\Z-Eneko\test\DCF_app`, autor git "Enekin").
 
 ## Registro de cambios
 
+- **2026-11-24** — Ventana "Curva par–rpm" (v1.2) implementada y verificada: 187 tests (sin
+  saltar ninguno de GUI), `ruff`/`mypy` limpios. Comando de depuración: `--profile FICHERO...`.
+  `run_app.bat` reinstala dependencias si cambia `pyproject.toml` (copia en
+  `.venv-win\pyproject.stamp`): la primera ejecución en Windows tras el cambio necesita Internet
+  para instalar matplotlib. El dibujo está en `widgets/torque_plot.py` (sin Tk, renderizable a PNG).
+  Lectura de los mapas reales: `Carrera1_100_30` = 100 Nm hasta 2850 rpm y luego ~30 kW
+  constantes; `v7_45kW` ≈ 45 kW; `Primer` mantiene 78.9 Nm planos hasta 6500 rpm (53.7 kW).
+  Más dudas de datos: `DCF_10_04-v8_Circe` y `2MapasLimitados` tienen npp 5 con Ls/Ke de Circe
+  (npp 4). En `Carrera2`, 6076 = 150 Nm, pero el mapa principal se queda en 100 (solo el
+  secundario llega a 150). La escala de 6076 (0.001 Nm/bit) es correcta. Diseño:
+  - Qué objetos se leen está en `knowledge/motor_profile.toml`: mapas 4611h (principal) y
+    4615h (secundario, opcional), línea de par de pico 6076h y constantes 4641 subA/12/5/2 y
+    6076. El punto k del mapa está en sub 2k-1 (par, 0.0625 Nm) y sub 2k (rpm).
+  - Modelos en `domain/motor_profile.py`. El extractor y el caso de uso `LoadMotorProfiles`
+    están en `application/`; la ventana usa matplotlib, que solo se importa en `presentation`.
+  - En cada punto se anota la potencia teórica P = T·ω en kW, con una curva de potencia
+    opcional. A y B se superponen (A azul, B naranja).
+  - Datos comprobados: en `Motorland_v7_45kW` salen unos 45 kW (cuadra con el nombre). El
+    mapa secundario solo está configurado en `Carrera2` (150 Nm).
+  - **Problema encontrado:** Circe (FW antiguo) tiene un mapa de 314 Nm con 6076 = 20 Nm. El
+    tope efectivo de par no está claro; por eso no se calcula una "curva efectiva".
+- **2026-11-24** — 5 DCF nuevos del usuario (commit `8dcb33f`, hecho desde Windows):
+  `Segundo_mapa_fk1_Temperatura`, `2MapasLimitadosPara30-06_PunoRespuestaRapida`,
+  `Motorland_v2_MapaCambiado`, `Motorland_v3_MapaCambiado_encoder_reinsaw_Ajustado` y
+  `Motorland_v4_UMA`. Copiados a `data/samples/` y añadidos a `ALL_SAMPLES`. La prueba de
+  "sin cambios sin clasificar" ahora recorre todos los pares consecutivos de `ALL_SAMPLES`.
+  Comprobado a mano: en los 66 pares posibles de los 12 DCF no queda nada en "other".
+  144 tests en verde.
+  - **Problema encontrado:** desde la red del usuario, los push por HTTPS de unos 75 KB fallan
+    con `HTTP 408`. Los de pocos KB sí pasan. Ni `http.postBuffer` ni HTTP/1.1 lo arreglan,
+    así que es la red (proxy/VPN). SSH a GitHub responde, pero la clave no está dada de alta.
 - **2026-11-24** — Preparado para entregarlo a un profesor. Comprobado desde un clon limpio:
   instalación, 131 tests, `ruff`, `mypy` y CLI correctos.
   - Añadido `.gitattributes`: `*.bat` con CRLF (un `.bat` en LF puede fallar en `cmd`), y `*.dcf`

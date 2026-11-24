@@ -94,3 +94,23 @@ gains" → calibración sin/cos y offset del encoder → ajuste de lazo de veloc
 - **Temp. máx motor (4621)**: por encima, par rampa de 100 % a 0 %.
 - **BDI / subtensión mal ajustados**: falsos "Low batt" que paran la moto.
 - **Demasiados TPDO o SYNC corto**: satura el bus CAN, trazas planas en el log.
+
+## 6. Curva par–rpm (ventana "Curva par–rpm", `motor_profile.toml`)
+
+- **4611h "Motor power limit map"**: 9 puntos. El punto *k* (1..9) ocupa dos subíndices:
+  sub `2k-1` = par máximo (UNSIGNED16, SCALING 0.0625 → Nm) y sub `2k` = velocidad (rpm, sin
+  escalar). Las velocidades van en orden ascendente; la app respeta el orden del fichero.
+- **4615h**: mapa secundario con la misma estructura; lo activa el trigger de mapa secundario
+  **4652h**. Si todos sus pares valen 0 se considera no configurado y no se dibuja
+  (`optional = true`). Ej.: `Motorland_Carrera2_100..150_30` lo usa (150 Nm hasta 1900 rpm).
+- Líneas de referencia: **6076h** *Peak torque* (Nm, escalado del DCF).
+- Constantes listadas junto a la gráfica: Ls (4641subA, µH), Ke (4641sub12, V/(rad/s)),
+  npp (4641sub5), Is max (4641sub2, A rms), par de pico (6076h).
+- Potencia teórica en cada punto: **P = T·ω = T · rpm · 2π/60** (kW = /1000). Es la potencia
+  mecánica que pide el mapa; la real queda limitada además por tensión de batería (4612),
+  corriente (6075, 4641sub2) y temperatura.
+- 4617sub1 (tablas *lookup* del motor, DOMAIN ~9.5 kB) es binario sin formato documentado: no se
+  decodifica ni se dibuja.
+- Ojo con los datos: en `circe-MS2223`, `DCF_10_04-v8_Circe…` y `2MapasLimitados…` el 6076h vale
+  10–20 Nm mientras el mapa 4611h llega a 314 Nm, así que la línea de par de pico queda muy por
+  debajo de la curva (el limitador efectivo allí es otro).

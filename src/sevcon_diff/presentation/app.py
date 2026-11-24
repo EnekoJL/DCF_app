@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import queue
+import tkinter as tk
 from collections.abc import Callable
 from pathlib import Path
 from tkinter import filedialog, messagebox
+from typing import TYPE_CHECKING
 
 import customtkinter as ctk
 
@@ -15,6 +17,7 @@ from sevcon_diff.presentation.view_models import (
     FileCaption,
     GroupOption,
     GroupSection,
+    MotorChartViewModel,
     SummaryViewModel,
 )
 from sevcon_diff.presentation.widgets.diff_table import DiffTable
@@ -32,6 +35,9 @@ from sevcon_diff.presentation.widgets.theme import (
     WINDOW,
 )
 
+if TYPE_CHECKING:
+    from sevcon_diff.presentation.widgets.torque_chart import TorqueChartWindow
+
 MIN_SIZE = (1180, 720)
 _POLL_MS = 40
 _PAD = 20
@@ -44,6 +50,7 @@ class SevconDiffApp(ctk.CTk):  # type: ignore[misc]
         super().__init__(fg_color=WINDOW)
         self._controller = controller
         self._ui_queue: queue.SimpleQueue[Callable[[], None]] = queue.SimpleQueue()
+        self.chart_window: TorqueChartWindow | None = None
         self.title(s.APP_TITLE)
         self.minsize(*MIN_SIZE)
         self.geometry(f"{MIN_SIZE[0] + 180}x{MIN_SIZE[1] + 120}")
@@ -107,6 +114,14 @@ class SevconDiffApp(ctk.CTk):  # type: ignore[misc]
             command=self._controller.compare,
         )
         self._compare_button.grid(row=0, column=3, sticky="ns", padx=(12, 0))
+        self._chart_button = ctk.CTkButton(
+            bar, text=s.CHART_BUTTON, width=150, corner_radius=12, state="disabled",
+            fg_color="transparent", border_width=1, border_color=CARD_BORDER,
+            hover_color=SECONDARY_HOVER, text_color=TEXT, text_color_disabled=MUTED,
+            font=ctk.CTkFont(FONT_FAMILY, 13), command=self._controller.show_motor_chart,
+        )
+        if self._controller.can_show_motor_chart:
+            self._chart_button.grid(row=0, column=4, sticky="ns", padx=(8, 0))
 
     def _build_footer(self) -> None:
         footer = ctk.CTkFrame(self, fg_color="transparent")
@@ -138,10 +153,20 @@ class SevconDiffApp(ctk.CTk):  # type: ignore[misc]
 
     def _on_appearance_changed(self, mode: str) -> None:
         self._table.apply_theme(mode)
+        if self._chart_open():
+            assert self.chart_window is not None
+            self.chart_window.apply_theme(mode)
 
     def destroy(self) -> None:
         ctk.AppearanceModeTracker.remove(self._on_appearance_changed)
         super().destroy()
+
+    def _chart_open(self) -> bool:
+        window = self.chart_window
+        try:
+            return window is not None and bool(window.winfo_exists())
+        except tk.TclError:
+            return False
 
     # --- threading ----------------------------------------------------------------------
     def _drain_ui_queue(self) -> None:
@@ -170,6 +195,7 @@ class SevconDiffApp(ctk.CTk):  # type: ignore[misc]
     def show_paths(self, a: Path | None, b: Path | None) -> None:
         self._file_a.set_path(a)
         self._file_b.set_path(b)
+        self._chart_button.configure(state="normal" if a or b else "disabled")
 
     def show_busy(self, busy: bool) -> None:
         self._compare_button.configure(
@@ -200,6 +226,23 @@ class SevconDiffApp(ctk.CTk):  # type: ignore[misc]
 
     def show_error(self, message: str) -> None:
         messagebox.showerror(s.ERROR_TITLE, message, parent=self)
+
+    def show_motor_chart(self, chart: MotorChartViewModel) -> None:
+        if self._chart_open():
+            assert self.chart_window is not None
+            self.chart_window.update_chart(chart)
+        else:
+            try:
+                from sevcon_diff.presentation.widgets.torque_chart import TorqueChartWindow
+            except ImportError:
+                self.show_error(s.CHART_NO_MATPLOTLIB)
+                return
+            self.chart_window = TorqueChartWindow(self, chart)
+        window = self.chart_window
+        window.lift()
+        window.focus_set()
+        # Windows may stack a new CTkToplevel behind its parent: raise it once more when idle.
+        self.after(250, lambda: self._chart_open() and window.lift())
 
 
 def launch(controller: CompareController) -> None:

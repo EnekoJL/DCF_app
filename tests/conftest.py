@@ -20,8 +20,14 @@ MOTORLAND = SAMPLES / "Motorland_Carrera1_100_30.dcf"
 MOTORLAND_RACE2 = SAMPLES / "Motorland_Carrera2_100..150_30.dcf"
 MOTORLAND_QUALY = SAMPLES / "Motorland_Qualy1_120_40.dcf"
 MOTORLAND_V7 = SAMPLES / "Motorland_v7_45kW.dcf"
+MOTORLAND_V2 = SAMPLES / "Motorland_v2_MapaCambiado.dcf"
+MOTORLAND_V3 = SAMPLES / "Motorland_v3_MapaCambiado_encoder_reinsaw_Ajustado.dcf"
+MOTORLAND_V4 = SAMPLES / "Motorland_v4_UMA.dcf"
+SEGUNDO = SAMPLES / "Segundo_mapa_fk1_Temperatura.dcf"
+DOS_MAPAS = SAMPLES / "2MapasLimitadosPara30-06_PunoRespuestaRapida.dcf"
 ALL_SAMPLES = (
-    CIRCE, CIRCE_V8, PRIMER, MOTORLAND, MOTORLAND_RACE2, MOTORLAND_QUALY, MOTORLAND_V7
+    CIRCE, CIRCE_V8, PRIMER, SEGUNDO, DOS_MAPAS, MOTORLAND, MOTORLAND_RACE2, MOTORLAND_QUALY,
+    MOTORLAND_V2, MOTORLAND_V3, MOTORLAND_V4, MOTORLAND_V7,
 )
 
 

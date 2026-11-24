@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
 
+from sevcon_diff.application.value_decoder import format_number
 from sevcon_diff.domain.diff_models import (
     ChangeKind,
     DecodedValue,
@@ -12,9 +13,18 @@ from sevcon_diff.domain.diff_models import (
     FileSummary,
     ParameterChange,
 )
+from sevcon_diff.domain.models import ObjectKey
+from sevcon_diff.domain.motor_profile import (
+    LineStyle,
+    MotorConstant,
+    MotorProfile,
+    TorqueSpeedCurve,
+)
 from sevcon_diff.presentation import strings_es as s
 
 GROUP_ALL = "__all__"
+SLOT_A = "A"
+SLOT_B = "B"
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,3 +173,150 @@ def build_hint(change: ParameterChange) -> str:
         high = change.high_limit.display if change.high_limit else "—"
         parts.append(s.HINT_OUT_OF_LIMITS.format(low=low, high=high))
     return "  ·  ".join(parts)
+
+
+# --- torque-speed chart --------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ChartSeries:
+    """One torque-speed map of one file, with its theoretical power per point."""
+
+    slot: str
+    file_name: str
+    curve_id: str
+    curve_label: str
+    style: LineStyle
+    speeds: tuple[float, ...]
+    torques: tuple[float, ...]
+    powers_kw: tuple[float, ...]
+    annotations: tuple[str, ...]  # "" where there is nothing worth labelling (0 kW)
+    max_power_kw: float
+    legend: str
+    power_legend: str
+
+
+@dataclass(frozen=True, slots=True)
+class ChartReference:
+    slot: str
+    label: str
+    torque_nm: float
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class ConstantRow:
+    label: str
+    key_label: str
+    value_a: str
+    value_b: str
+    units: str
+    changed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class MotorChartViewModel:
+    title: str
+    slots: tuple[str, ...]  # files present, e.g. ("A", "B") or ("B",)
+    series: tuple[ChartSeries, ...]
+    references: tuple[ChartReference, ...] = ()
+    constants: tuple[ConstantRow, ...] = ()
+    file_names: Mapping[str, str] = field(default_factory=dict)
+
+    @property
+    def empty(self) -> bool:
+        return not self.series
+
+
+def format_kw(value: float) -> str:
+    return f"{value:.1f} kW"
+
+
+def _series(slot: str, profile: MotorProfile, curve: TorqueSpeedCurve) -> ChartSeries:
+    powers = tuple(p.power_kw for p in curve.points)
+    peak = max(powers, default=0.0)
+    return ChartSeries(
+        slot=slot,
+        file_name=profile.display_name,
+        curve_id=curve.id,
+        curve_label=curve.label,
+        style=curve.style,
+        speeds=tuple(p.speed_rpm for p in curve.points),
+        torques=tuple(p.torque_nm for p in curve.points),
+        powers_kw=powers,
+        annotations=tuple(format_kw(kw) if round(kw, 1) != 0 else "" for kw in powers),
+        max_power_kw=peak,
+        legend=s.CHART_LEGEND.format(
+            slot=slot, file=profile.display_name, curve=curve.label, power=format_kw(peak)
+        ),
+        power_legend=s.CHART_POWER_LEGEND.format(slot=slot, curve=curve.label),
+    )
+
+
+def _constant_value(const: MotorConstant | None) -> str:
+    if const is None or const.value is None:
+        return s.MISSING_VALUE
+    return const.value.display
+
+
+def _constant_rows(
+    profile_a: MotorProfile | None, profile_b: MotorProfile | None
+) -> tuple[ConstantRow, ...]:
+    by_slot = [
+        {c.key: c for c in p.constants} if p is not None else {} for p in (profile_a, profile_b)
+    ]
+    ordered = [c for p in (profile_a, profile_b) if p is not None for c in p.constants]
+    rows: list[ConstantRow] = []
+    seen: set[ObjectKey] = set()
+    for const in ordered:
+        if const.key in seen:
+            continue
+        seen.add(const.key)
+        a, b = (mapping.get(const.key) for mapping in by_slot)
+        both = (
+            a is not None and a.value is not None and b is not None and b.value is not None
+        )
+        value_a, value_b = _constant_value(a), _constant_value(b)
+        rows.append(
+            ConstantRow(
+                label=const.label,
+                key_label=const.key.label,
+                value_a=value_a,
+                value_b=value_b,
+                units=(a.units if a is not None else "") or (b.units if b is not None else ""),
+                changed=both and value_a != value_b,
+            )
+        )
+    return tuple(rows)
+
+
+def build_motor_chart(
+    profile_a: MotorProfile | None, profile_b: MotorProfile | None
+) -> MotorChartViewModel:
+    """Overlay of the torque-speed maps of A and/or B plus the motor constants table."""
+    present = [(slot, p) for slot, p in ((SLOT_A, profile_a), (SLOT_B, profile_b)) if p]
+    if len(present) == 2:
+        title = s.CHART_TITLE_TWO.format(a=present[0][1].display_name, b=present[1][1].display_name)
+    elif present:
+        title = s.CHART_TITLE_ONE.format(name=present[0][1].display_name)
+    else:
+        title = s.CHART_TITLE
+    return MotorChartViewModel(
+        title=title,
+        slots=tuple(slot for slot, _ in present),
+        series=tuple(_series(slot, p, c) for slot, p in present for c in p.curves),
+        references=tuple(
+            ChartReference(
+                slot=slot,
+                label=ref.label,
+                torque_nm=ref.torque_nm,
+                text=s.CHART_REFERENCE.format(
+                    slot=slot, label=ref.label, value=format_number(ref.torque_nm)
+                ),
+            )
+            for slot, p in present
+            for ref in p.references
+        ),
+        constants=_constant_rows(profile_a, profile_b),
+        file_names={slot: p.display_name for slot, p in present},
+    )

@@ -1,0 +1,53 @@
+# Perfil del motor que muestra la ventana "Curva par–rpm".
+#
+# Igual que parameter_groups.toml: índices y subíndices en HEX, como en el DCF. Las unidades y el
+# escalado se leen del propio DCF (;SEVCONFIELD), aquí solo se dice QUÉ objetos leer.
+# Ver docs/sevcon_parameters.md (sección "Curva par–rpm").
+
+# Mapas par–velocidad ("Motor power limit map"). Cada punto k (1..points) ocupa dos subíndices:
+#   sub (2k-1) = par máximo (Nm)    sub (2k) = velocidad (rpm)
+# optional = true -> se omite si todos los pares valen 0 (mapa no configurado).
+# style: "solid" | "dashed" (cómo se dibuja la línea).
+
+[[torque_speed_map]]
+id = "main"
+label = "Mapa de potencia (4611h)"
+index = "4611"
+points = 9
+style = "solid"
+optional = false
+
+[[torque_speed_map]]
+id = "secondary"
+label = "Mapa secundario (4615h)"
+index = "4615"
+points = 9
+style = "dashed"
+optional = true
+
+# Líneas horizontales de referencia (topes de par) sobre la gráfica.
+[[reference_line]]
+id = "peak_torque"
+label = "Par de pico (6076h)"
+key = "6076"
+
+# Constantes del motor que se listan junto a la gráfica (A frente a B).
+[[constant]]
+key = "4641subA"
+label = "Inductancia del estátor (Ls)"
+
+[[constant]]
+key = "4641sub12"
+label = "Constante de tensión (Ke)"
+
+[[constant]]
+key = "4641sub5"
+label = "Pares de polos (npp)"
+
+[[constant]]
+key = "4641sub2"
+label = "Corriente máx. estátor (Is max)"
+
+[[constant]]
+key = "6076"
+label = "Par de pico"

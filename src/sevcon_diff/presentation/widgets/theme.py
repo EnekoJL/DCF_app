@@ -16,6 +16,10 @@ CARD_BORDER = ("#E5E7EB", "#2A2E36")
 CHIP = ("#EEF2F7", "#232730")
 SECONDARY_HOVER = ("#E5E7EB", "#2A2E36")
 
+# Torque chart: one hue per file slot (validated for colour-blind separation on both surfaces).
+SERIES_A = ACCENT
+SERIES_B = ("#EA580C", "#EA580C")
+
 
 def pick(pair: tuple[str, str], dark: bool) -> str:
     return pair[1] if dark else pair[0]

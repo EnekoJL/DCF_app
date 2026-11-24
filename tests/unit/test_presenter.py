@@ -5,9 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from conftest import MOTORLAND, PRIMER
+from conftest import MOTORLAND, MOTORLAND_RACE2, PRIMER
+from sevcon_diff.__main__ import build_profile_use_case
 from sevcon_diff.application.compare_service import CompareDcfFiles
 from sevcon_diff.domain.diff_models import DiffResult
+from sevcon_diff.presentation import strings_es as s
 from sevcon_diff.presentation.presenter import CompareController
 
 
@@ -88,3 +90,59 @@ def test_compare_error_is_reported(compare: CompareDcfFiles, tmp_path: Path) -> 
     thread.join(timeout=10)
     assert "show_error" in view.calls
     assert view.calls["show_busy"][-1] == (False,)
+
+
+def make_with_chart(compare: CompareDcfFiles) -> tuple[CompareController, RecordingView]:
+    controller = CompareController(compare, {}, build_profile_use_case())
+    view = RecordingView()
+    controller.attach(view)  # type: ignore[arg-type]
+    return controller, view
+
+
+def test_motor_chart_needs_a_file(compare: CompareDcfFiles) -> None:
+    controller, view = make_with_chart(compare)
+    assert controller.show_motor_chart() is None
+    assert view.last("show_status") == (s.CHART_NEED_FILE,)
+    assert "show_motor_chart" not in view.calls
+
+
+def test_motor_chart_without_use_case(compare: CompareDcfFiles) -> None:
+    controller, view, _ = make(compare)
+    controller.set_path_a(PRIMER)
+    assert not controller.can_show_motor_chart
+    assert controller.show_motor_chart() is None
+    assert view.last("show_status") == (s.CHART_UNAVAILABLE,)
+
+
+def test_motor_chart_only_b(compare: CompareDcfFiles) -> None:
+    controller, view = make_with_chart(compare)
+    controller.set_path_b(MOTORLAND_RACE2)
+    thread = controller.show_motor_chart()
+    assert thread is not None
+    thread.join(timeout=30)
+    (chart,) = view.last("show_motor_chart")
+    assert chart.slots == ("B",)
+    assert [(sr.slot, sr.curve_id) for sr in chart.series] == [("B", "main"), ("B", "secondary")]
+    assert view.last("show_status") == (s.CHART_DONE,)
+
+
+def test_motor_chart_both_files_without_comparing(compare: CompareDcfFiles) -> None:
+    controller, view = make_with_chart(compare)
+    controller.set_path_a(PRIMER)
+    controller.set_path_b(MOTORLAND)
+    thread = controller.show_motor_chart()
+    assert thread is not None
+    thread.join(timeout=30)
+    (chart,) = view.last("show_motor_chart")
+    assert chart.slots == ("A", "B")
+    assert {sr.slot for sr in chart.series} == {"A", "B"}
+    assert controller.result is None
+
+
+def test_motor_chart_error_is_reported(compare: CompareDcfFiles, tmp_path: Path) -> None:
+    controller, view = make_with_chart(compare)
+    controller.set_path_a(tmp_path / "missing.dcf")
+    thread = controller.show_motor_chart()
+    assert thread is not None
+    thread.join(timeout=10)
+    assert "show_error" in view.calls and "show_motor_chart" not in view.calls

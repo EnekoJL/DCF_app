@@ -14,7 +14,9 @@ from typing import Protocol
 
 from sevcon_diff.application.compare_service import CompareDcfFiles
 from sevcon_diff.application.filters import DiffQuery
+from sevcon_diff.application.motor_profile import LoadMotorProfiles
 from sevcon_diff.domain.diff_models import DiffResult, ParameterChange
+from sevcon_diff.domain.motor_profile import MotorProfile
 from sevcon_diff.domain.ports import ReportExporter
 from sevcon_diff.presentation import strings_es as s
 from sevcon_diff.presentation.view_models import (
@@ -22,9 +24,11 @@ from sevcon_diff.presentation.view_models import (
     FileCaption,
     GroupOption,
     GroupSection,
+    MotorChartViewModel,
     SummaryViewModel,
     build_group_options,
     build_hint,
+    build_motor_chart,
     build_sections,
     build_summary,
     file_caption,
@@ -43,6 +47,7 @@ class CompareView(Protocol):
     def show_hint(self, text: str) -> None: ...
     def show_status(self, message: str) -> None: ...
     def show_error(self, message: str) -> None: ...
+    def show_motor_chart(self, chart: MotorChartViewModel) -> None: ...
 
 
 def _run_inline(callback: Callable[[], None]) -> None:
@@ -51,9 +56,13 @@ def _run_inline(callback: Callable[[], None]) -> None:
 
 class CompareController:
     def __init__(
-        self, compare: CompareDcfFiles, exporters: Mapping[str, ReportExporter]
+        self,
+        compare: CompareDcfFiles,
+        exporters: Mapping[str, ReportExporter],
+        load_profiles: LoadMotorProfiles | None = None,
     ) -> None:
         self._compare = compare
+        self._load_profiles = load_profiles
         self._exporters = dict(exporters)
         self._view: CompareView | None = None
         self._run_on_ui: UiScheduler = _run_inline
@@ -132,6 +141,48 @@ class CompareController:
 
     def _on_failed(self, message: str) -> None:
         self.view.show_busy(False)
+        self.view.show_status(message)
+        self.view.show_error(message)
+
+    # --- torque-speed chart ------------------------------------------------------------
+    @property
+    def can_show_motor_chart(self) -> bool:
+        return self._load_profiles is not None
+
+    def show_motor_chart(self) -> threading.Thread | None:
+        """Read the maps of A and/or B in a worker thread; no comparison needed."""
+        load = self._load_profiles
+        if load is None:
+            self.view.show_status(s.CHART_UNAVAILABLE)
+            return None
+        slots = [self._path_a, self._path_b]
+        if not any(slots):
+            self.view.show_status(s.CHART_NEED_FILE)
+            return None
+        self.view.show_status(s.CHART_LOADING)
+
+        def work() -> None:
+            try:
+                loaded = iter(load.execute([p for p in slots if p is not None]))
+                profiles: list[MotorProfile | None] = [
+                    next(loaded) if p is not None else None for p in slots
+                ]
+            except Exception as exc:  # unreadable file: report it, never crash the UI
+                message = s.CHART_ERROR.format(error=exc)
+                self._run_on_ui(lambda: self._on_chart_failed(message))
+            else:
+                chart = build_motor_chart(profiles[0], profiles[1])
+                self._run_on_ui(lambda: self._on_chart_loaded(chart))
+
+        thread = threading.Thread(target=work, name="dcf-profile", daemon=True)
+        thread.start()
+        return thread
+
+    def _on_chart_loaded(self, chart: MotorChartViewModel) -> None:
+        self.view.show_motor_chart(chart)
+        self.view.show_status(s.CHART_DONE)
+
+    def _on_chart_failed(self, message: str) -> None:
         self.view.show_status(message)
         self.view.show_error(message)
 

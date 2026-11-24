@@ -51,3 +51,45 @@ def test_window_compares_and_filters(compare: CompareDcfFiles) -> None:
         assert tree.get_children() == ("group:can_pdo",)
     finally:
         app.destroy()
+
+
+def test_motor_chart_window(compare: CompareDcfFiles) -> None:
+    from sevcon_diff.__main__ import build_profile_use_case
+    from sevcon_diff.presentation.app import SevconDiffApp
+
+    controller = CompareController(compare, {}, build_profile_use_case())
+    app = SevconDiffApp(controller)
+    try:
+        assert app._chart_button.cget("state") == "disabled"
+        controller.set_path_a(PRIMER)
+        assert app._chart_button.cget("state") == "normal"
+        controller.set_path_b(MOTORLAND)
+
+        def open_chart() -> None:
+            thread = controller.show_motor_chart()
+            assert thread is not None
+            thread.join(timeout=30)
+            deadline = time.monotonic() + 10
+            while app.chart_window is None and time.monotonic() < deadline:
+                app.update()
+            app.update()
+
+        open_chart()
+        window = app.chart_window
+        assert window is not None and window.winfo_exists()
+        assert len(window.figure.axes) == 1
+        window.set_show_power(True)
+        app.update()
+        assert len(window.figure.axes) == 2  # power on a twin axis
+        window.apply_theme("Dark")
+        app.update()
+
+        controller.set_path_a(None)  # only B now: same window is reused
+        open_chart()
+        assert app.chart_window is window
+        window.destroy()
+        app.update()
+        open_chart()  # closed -> a new window
+        assert app.chart_window is not window and app.chart_window is not None
+    finally:
+        app.destroy()

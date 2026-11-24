@@ -12,6 +12,7 @@ dependencies = [
     "customtkinter>=5.2",
     "jinja2>=3.1",
     "fpdf2>=2.7",
+    "matplotlib>=3.8",
 ]
 
 [project.optional-dependencies]
@@ -56,3 +57,12 @@ packages = ["sevcon_diff"]
 [[tool.mypy.overrides]]
 module = ["customtkinter.*", "fpdf.*"]
 ignore_missing_imports = true
+
+# matplotlib ships types, but its Tk backend module is untyped and re-exports the toolbar.
+[[tool.mypy.overrides]]
+module = ["matplotlib.backends.backend_tkagg"]
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = ["sevcon_diff.presentation.widgets.torque_chart"]
+disallow_untyped_calls = false

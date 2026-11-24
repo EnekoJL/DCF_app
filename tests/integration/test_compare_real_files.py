@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -93,7 +94,11 @@ def test_primer_vs_motorland_real_changes(primer_vs_motorland: DiffResult) -> No
     assert im_min.delta == pytest.approx(350)
 
 
-@pytest.mark.parametrize("pair", [(CIRCE, CIRCE_V8), (CIRCE_V8, PRIMER), (PRIMER, MOTORLAND)])
+@pytest.mark.parametrize(
+    "pair",
+    list(pairwise(ALL_SAMPLES)),
+    ids=lambda p: f"{p[0].stem}->{p[1].stem}",
+)
 def test_every_relevant_change_has_a_specific_group(
     compare: CompareDcfFiles, pair: tuple[Path, Path]
 ) -> None:
